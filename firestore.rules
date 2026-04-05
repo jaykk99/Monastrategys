@@ -172,6 +172,14 @@ service cloud.firestore {
 
         allow update: if isAdmin() && isValidPaymentVerification(request.resource.data);
       }
+
+      match /api_keys/{userId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /exchange_keys/{userId} {
+        allow read, write: if isOwner(userId);
+      }
     }
   }
 }
