@@ -1,1 +1,67 @@
-
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile containing plan and unlocked strategies.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "plan": { "type": "string", "enum": ["STARTER", "BASIC", "PRO"] },
+        "unlockedStrats": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "backtestCount": { "type": "number" }
+      },
+      "required": ["uid", "email", "role", "plan", "unlockedStrats", "createdAt"]
+    },
+    "Strategy": {
+      "title": "Strategy",
+      "description": "Trading strategy details.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "assetCategory": { "type": "string" },
+        "timeframes": { "type": "array", "items": { "type": "string" } },
+        "content": { "type": "string" },
+        "isAutoTrade": { "type": "boolean" },
+        "author": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "description", "assetCategory", "timeframes", "content"]
+    },
+    "PaymentVerification": {
+      "title": "PaymentVerification",
+      "description": "Solana transaction verification for plan upgrades.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "txHash": { "type": "string" },
+        "plan": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "verified", "rejected"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "amount": { "type": "string" },
+        "currency": { "type": "string" },
+        "email": { "type": "string" }
+      },
+      "required": ["userId", "txHash", "plan", "status", "timestamp", "amount", "currency", "email"]
+    }
+  },
+  "firestore": {
+    "/artifacts/monaco-trading-ecosystem/public/data/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles."
+    },
+    "/artifacts/monaco-trading-ecosystem/public/data/global_strategies/{strategyId}": {
+      "schema": { "$ref": "#/entities/Strategy" },
+      "description": "Available trading strategies."
+    },
+    "/artifacts/monaco-trading-ecosystem/public/data/payment_verifications/{verificationId}": {
+      "schema": { "$ref": "#/entities/PaymentVerification" },
+      "description": "Payment verification requests."
+    }
+  }
+}
