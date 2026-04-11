@@ -1,20 +1,19 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Monaco Trading Ecosystem
 
-# Run and deploy your AI Studio app
+This is a client-side React application for managing trading strategies.
 
-This contains everything you need to run your app locally.
+## Project Structure
+- `src/App.tsx`: Main React component.
+- `package.json`: Project dependencies and scripts.
+- `README.md`: This file.
 
-View your app in AI Studio: https://ai.studio/apps/2bb3e630-5562-44ce-9159-041b31c1cd32
+## Development
+To run the application in development mode:
+```bash
+npm install
+npm run dev
+```
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Publishing
+1. Push your code to your GitHub repository.
+2. Use the "Fetch from GitHub" feature in the application to deploy.
