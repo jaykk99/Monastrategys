@@ -739,6 +739,39 @@ const App = () => {
     }
   };
 
+  const verifySolanaTransaction = async (txHash: string, userId: string, planRequested: string) => {
+    try {
+      const connection = new web3.Connection("https://api.mainnet-beta.solana.com");
+      const tx = await connection.getTransaction(txHash, {
+        maxSupportedTransactionVersion: 0,
+      });
+
+      if (!tx) {
+        throw new Error("Transaction not found on mainnet");
+      }
+
+      if (tx.meta?.err) {
+        throw new Error("Transaction failed on chain");
+      }
+
+      const userDocRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'users', userId);
+      await updateDoc(userDocRef, {
+        plan: planRequested
+      });
+      await addDoc(collection(db, 'artifacts', APP_ID, 'public', 'data', 'payment_verifications'), {
+        userId,
+        txHash,
+        planRequested,
+        status: 'verified',
+        timestamp: serverTimestamp()
+      });
+      return { success: true, message: "Transaction verified and plan updated." };
+    } catch (error: any) {
+      console.error("Error verifying transaction:", error);
+      throw error;
+    }
+  };
+
   const deleteStrategy = async () => {
     if (!isAdmin || !stratToDelete) return;
     setIsDeleting(true);
