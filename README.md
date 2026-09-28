@@ -1,19 +1,32 @@
-# Monaco Trading Ecosystem
+# Monaco V7 — Trading Strategy Ecosystem
 
-This is a client-side React application for managing trading strategies.
+A client-side React + Vite trading-strategy app with a cyberpunk-terminal aesthetic.
+Auth and data sync run on Firebase; the app boots and builds without any keys
+(everything optional degrades gracefully).
 
-## Project Structure
-- `src/App.tsx`: Main React component.
-- `package.json`: Project dependencies and scripts.
-- `README.md`: This file.
+## Quick start
 
-## Development
-To run the application in development mode:
 ```bash
 npm install
-npm run dev
+npm run dev      # dev server
+npm run build    # production build -> dist/
 ```
 
-## Publishing
-1. Push your code to your GitHub repository.
-2. Use the "Fetch from GitHub" feature in the application to deploy.
+## Configuration (all optional — keyless by default)
+
+Copy `.env.example` to `.env` and fill in what you use:
+
+| Variable | Purpose |
+|---|---|
+| `VITE_FIREBASE_*` | Firebase project (auth + Firestore). Without these, `firebase-applet-config.json` holds placeholders and Firebase calls fail gracefully. |
+| `VITE_ADMIN_EMAIL` / `VITE_ADMIN_PASS` | Optional admin backdoor login. Both must be set; when unset, no admin path exists. |
+| `GEMINI_API_KEY` | Optional Gemini key for AI-assisted features. |
+
+Never commit `.env` — only `.env.example` is tracked (see `.gitignore`).
+
+## Notes
+
+- `firebase-applet-config.json` is a build-time placeholder with dummy values; real
+  Firebase deployments inject the real config.
+- `firestore.rules` contains the Firestore security rules for the backend.
+- `firebase-blueprint.json` documents the Firestore data model.

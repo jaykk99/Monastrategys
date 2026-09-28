@@ -47,8 +47,11 @@ const db = getFirestore(app, firebaseConfigData.firestoreDatabaseId);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-const ADMIN_EMAIL = "jayomer1234@gmail.com";
-const ADMIN_PASS = "Jayisthegoat09";
+const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL ?? '').trim().toLowerCase();
+const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS ?? '';
+// Admin backdoor login only works when both env vars are set. Keyless-first:
+// with no admin credentials configured, the app runs normally as a plain user.
+const ADMIN_LOGIN_CONFIGURED = ADMIN_EMAIL !== '' && ADMIN_PASS !== '';
 
 // ONLY SOL Address as requested
 const WALLET_ADDRESSES = {
@@ -325,7 +328,7 @@ const App = () => {
         setDoc(userDocRef, { 
           uid: user.uid,
           email: user.email, 
-          role: user.email === ADMIN_EMAIL ? "admin" : "user",
+          role: ADMIN_LOGIN_CONFIGURED && user.email === ADMIN_EMAIL ? "admin" : "user",
           plan: user.email?.toLowerCase() === "jayo87825@gmail.com" ? "PRO" : "STARTER", 
           unlockedStrats: [],
           createdAt: serverTimestamp()
@@ -340,7 +343,7 @@ const App = () => {
     });
   }, [user]);
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = ADMIN_LOGIN_CONFIGURED && user?.email === ADMIN_EMAIL;
 
   const formatAuthError = (err) => {
     let msg = err.message.replace('Firebase: ', '').toUpperCase();
@@ -374,8 +377,13 @@ const App = () => {
     const cleanEmail = email.trim().toLowerCase();
     
     try {
-      if (cleanEmail === ADMIN_EMAIL && password !== ADMIN_PASS) {
-        throw new Error("ADMIN_PASS_INVALID: PLEASE USE THE CORRECT ADMIN PASSWORD.");
+      if (ADMIN_EMAIL !== '' && cleanEmail === ADMIN_EMAIL) {
+        if (!ADMIN_LOGIN_CONFIGURED) {
+          throw new Error("ADMIN LOGIN IS NOT CONFIGURED ON THIS DEPLOYMENT.");
+        }
+        if (password !== ADMIN_PASS) {
+          throw new Error("ADMIN_PASS_INVALID: PLEASE USE THE CORRECT ADMIN PASSWORD.");
+        }
       }
       
       if (isSignUp) {
