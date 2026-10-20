@@ -35,7 +35,7 @@ export function BacktestView({
   const basicLeft = Math.max(0, 5 - backtestCount);
   const limitNote =
     plan === 'STARTER'
-      ? 'Backtests are not included in the Starter plan — upgrade to run them.'
+      ? 'Backtests are not included in the Starter plan: upgrade to run them.'
       : plan === 'BASIC' && !isAdmin
         ? `${basicLeft} of 5 monthly backtests remaining.`
         : 'Unlimited backtests on your plan.';
@@ -76,8 +76,7 @@ export function BacktestView({
               {isTesting ? 'RUNNING SIMULATION...' : 'RUN BACKTEST'}
             </button>
             <p className="text-[10px] text-zinc-600 leading-relaxed normal-case tracking-normal">
-              Deterministic simulated engine — same strategy always yields the same result. Illustrative
-              only, not trading advice.
+              Deterministic simulated engine: same strategy always yields the same result.               only, not trading advice.
             </p>
           </div>
 

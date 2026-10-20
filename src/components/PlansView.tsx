@@ -281,7 +281,7 @@ export function PlansView(props: Props) {
                   <h3 className="text-white font-bold text-base mb-2">Backtesting</h3>
                   <p className="text-sm normal-case tracking-normal">
                     The built-in backtest tab runs a deterministic simulated engine over each strategy
-                    and shows equity curve, win rate, profit factor and drawdown. Illustrative only —
+                    and shows equity curve, win rate, profit factor and drawdown. Illustrative only,
                     not trading advice.
                   </p>
                 </div>
@@ -291,14 +291,14 @@ export function PlansView(props: Props) {
                   <h3 className="text-white font-bold text-base mb-2">Pro auto-trading</h3>
                   <p className="text-sm normal-case tracking-normal">
                     Pro strategies include webhook-ready alerts: create one TradingView alert on the
-                    strategy, enable the webhook URL, paste your bot endpoint (3Commas, etc.) — the
+                    strategy, enable the webhook URL, paste your bot endpoint (3Commas, etc.): the
                     strategy fires, the bot executes.
                   </p>
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-base mb-2">Coverage</h3>
                   <p className="text-sm normal-case tracking-normal">
-                    Crypto, stocks, forex, funds, commodities and indices — from 1-minute scalps to
+                    Crypto, stocks, forex, funds, commodities and indices: from 1-minute scalps to
                     weekly swing systems.
                   </p>
                 </div>

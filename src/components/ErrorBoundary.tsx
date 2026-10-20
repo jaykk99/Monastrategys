@@ -28,7 +28,7 @@ export class ErrorBoundary extends Component<Props, State> {
             SYSTEM FAULT
           </div>
           <p className="text-zinc-500 mb-6 max-w-md text-sm">
-            The application hit an unexpected error. Your data is safe — try refreshing the page.
+            The application hit an unexpected error. Your data is safe: try refreshing the page.
           </p>
           <pre className="bg-zinc-900 border border-white/10 p-4 rounded text-xs text-red-400 overflow-auto max-w-full mb-8 text-left">
             {this.state.error?.toString()}

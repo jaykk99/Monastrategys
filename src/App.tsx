@@ -269,7 +269,7 @@ function InnerApp() {
     if (!demoMode || !profile) return;
     if (isExpired((profile as any).expiresAt) && profile.plan !== 'STARTER') {
       persistProfile({ plan: 'STARTER', expiresAt: null } as Partial<UserProfile>);
-      notify('Your plan trial expired — back to Starter.', 'info');
+      notify('Your plan trial expired: back to Starter.', 'info');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demoMode, profile?.uid]);
