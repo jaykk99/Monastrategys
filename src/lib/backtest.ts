@@ -4,10 +4,14 @@
 // generates a reproducible pseudo-random-walk market seeded by the strategy
 // id, executes a simple rule-based trade loop over it, and computes real
 // statistics (net P&L, win rate, profit factor, max drawdown, trade count)
-// plus an equity curve for charts. Same strategy id => same results, every
-// run. Results are illustrative, not trading advice.
+// plus an equity curve for charts. Same strategy id + rule => same results,
+// every run. Results are illustrative, not trading advice.
+//
+// The default 'momentum' rule keeps its exact historic PRNG draw sequence,
+// so existing strategy stats never change when new rules are added.
 
-import type { BacktestStats } from './types';
+import type { BacktestStats, BacktestTrade } from './types';
+import { BACKTEST_RULES } from './types';
 
 // mulberry32 — small deterministic PRNG
 function mulberry32(seed: number): () => number {
@@ -35,11 +39,15 @@ function seedFromString(s: string): number {
  * @param strategyId stable id used as the random seed
  * @param startingEquity starting account value in USD
  * @param bars number of simulated market bars
+ * @param rule signal rule — 'momentum' is the default (historic behavior);
+ *   'meanreversion' and 'breakout' are alternative entry rules on the same
+ *   seeded market so rules are comparable per strategy
  */
 export function runBacktestEngine(
   strategyId: string,
   startingEquity = 10000,
   bars = 252,
+  rule: (typeof BACKTEST_RULES)[number] = 'momentum',
 ): BacktestStats {
   const rand = mulberry32(seedFromString(strategyId || 'default'));
   const drift = (rand() - 0.42) * 0.004; // strategy "edge" baked into seed
@@ -53,9 +61,17 @@ export function runBacktestEngine(
     closes.push(price);
   }
 
-  // Rule-based trade loop: momentum crossover with ATR-ish sizing.
+  // Rule-based trade loop.
+  // NOTE: the momentum path must not consume any extra PRNG draws beyond
+  // what it historically did, so legacy stats stay identical.
   const lookback = 5 + Math.floor(rand() * 15);
   const riskPct = 0.01 + rand() * 0.02;
+
+  // Extra parameters are drawn only for non-default rules, after the
+  // historic draws, so the momentum sequence is untouched.
+  const reversionBand = rule === 'meanreversion' ? 0.4 + rand() * 0.6 : 0;
+  const breakoutLookback = rule === 'breakout' ? 5 + Math.floor(rand() * 10) : 0;
+
   let equity = startingEquity;
   const equityCurve: number[] = [startingEquity];
   let wins = 0;
@@ -64,14 +80,34 @@ export function runBacktestEngine(
   let grossLoss = 0;
   let peak = startingEquity;
   let maxDrawdown = 0;
+  let maxDrawdownUsd = 0;
   let trades = 0;
+  let consecLosses = 0;
+  let maxConsecLosses = 0;
+  const tradeReturns: number[] = [];
+  const tradeLog: BacktestTrade[] = [];
 
   for (let i = lookback + 1; i < closes.length; i++) {
     const sma = closes.slice(i - lookback, i).reduce((a, b) => a + b, 0) / lookback;
     const prevSma =
       closes.slice(i - lookback - 1, i - 1).reduce((a, b) => a + b, 0) / lookback;
-    const longSignal = closes[i] > sma && closes[i - 1] <= prevSma;
-    const shortSignal = closes[i] < sma && closes[i - 1] >= prevSma;
+
+    let longSignal = false;
+    let shortSignal = false;
+    if (rule === 'momentum') {
+      longSignal = closes[i] > sma && closes[i - 1] <= prevSma;
+      shortSignal = closes[i] < sma && closes[i - 1] >= prevSma;
+    } else if (rule === 'meanreversion') {
+      const band = sma * vol * reversionBand;
+      longSignal = closes[i] < sma - band;
+      shortSignal = closes[i] > sma + band;
+    } else if (rule === 'breakout') {
+      const window = closes.slice(Math.max(0, i - breakoutLookback), i);
+      const hi = Math.max(...window);
+      const lo = Math.min(...window);
+      longSignal = closes[i] > hi;
+      shortSignal = closes[i] < lo;
+    }
     if (!longSignal && !shortSignal) continue;
 
     const direction = longSignal ? 1 : -1;
@@ -81,18 +117,33 @@ export function runBacktestEngine(
     const ret = direction * (closes[exitIdx] - closes[i]) / closes[i];
     const risk = equity * riskPct;
     const pnl = ret === 0 ? 0 : (ret / (vol * 2)) * risk * Math.sign(ret || 1);
+    const retOnEquity = equity === 0 ? 0 : pnl / equity;
 
     equity += pnl;
     trades++;
     if (pnl >= 0) {
       wins++;
       grossProfit += pnl;
+      consecLosses = 0;
     } else {
       losses++;
       grossLoss += -pnl;
+      consecLosses++;
+      maxConsecLosses = Math.max(maxConsecLosses, consecLosses);
     }
+    tradeReturns.push(retOnEquity);
+    tradeLog.push({
+      direction,
+      entryBar: i,
+      exitBar: exitIdx,
+      pnl: Math.round(pnl * 100) / 100,
+      equityAfter: Math.round(equity * 100) / 100,
+      rule,
+    });
     peak = Math.max(peak, equity);
-    maxDrawdown = Math.max(maxDrawdown, peak === 0 ? 0 : (peak - equity) / peak);
+    const dd = peak === 0 ? 0 : (peak - equity) / peak;
+    maxDrawdown = Math.max(maxDrawdown, dd);
+    maxDrawdownUsd = Math.max(maxDrawdownUsd, peak - equity);
     equityCurve.push(equity);
     i = exitIdx; // skip ahead past the closed trade
   }
@@ -106,6 +157,18 @@ export function runBacktestEngine(
   }
 
   const netProfit = equity - startingEquity;
+  const avgWin = wins === 0 ? 0 : grossProfit / wins;
+  const avgLoss = losses === 0 ? 0 : grossLoss / losses;
+  const meanR = tradeReturns.length === 0 ? 0 : tradeReturns.reduce((a, b) => a + b, 0) / tradeReturns.length;
+  const sdR =
+    tradeReturns.length < 2
+      ? 0
+      : Math.sqrt(
+          tradeReturns.reduce((a, b) => a + (b - meanR) * (b - meanR), 0) / (tradeReturns.length - 1),
+        );
+  const sharpe = sdR === 0 ? 0 : (Math.sqrt(tradeReturns.length) * meanR) / sdR;
+  const recoveryFactor = maxDrawdownUsd === 0 ? 0 : netProfit / maxDrawdownUsd;
+
   return {
     netProfit: Math.round(netProfit * 100) / 100,
     winRate: trades === 0 ? 0 : Math.round((wins / trades) * 10000) / 100,
@@ -114,7 +177,30 @@ export function runBacktestEngine(
     maxDrawdown: Math.round(maxDrawdown * 10000) / 100,
     trades,
     equity: curve,
+    rule,
+    avgWin: Math.round(avgWin * 100) / 100,
+    avgLoss: Math.round(avgLoss * 100) / 100,
+    expectancy: trades === 0 ? 0 : Math.round((netProfit / trades) * 100) / 100,
+    sharpe: Math.round(sharpe * 100) / 100,
+    maxConsecLosses,
+    grossProfit: Math.round(grossProfit * 100) / 100,
+    grossLoss: Math.round(grossLoss * 100) / 100,
+    recoveryFactor: Math.round(recoveryFactor * 100) / 100,
+    maxDrawdownUsd: Math.round(maxDrawdownUsd * 100) / 100,
+    tradeLog,
   };
+}
+
+/**
+ * Run every rule on the same seeded market so strategies (and rules) can be
+ * compared apples-to-apples in the compare view.
+ */
+export function runAllRules(
+  strategyId: string,
+  startingEquity = 10000,
+  bars = 252,
+): BacktestStats[] {
+  return BACKTEST_RULES.map((rule) => runBacktestEngine(strategyId, startingEquity, bars, rule));
 }
 
 /** Build an SVG path string for an equity curve. Pure function. */
@@ -145,4 +231,8 @@ export function formatUsd(n: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
+}
+
+export function formatPct(n: number): string {
+  return `${n.toFixed(2)}%`;
 }

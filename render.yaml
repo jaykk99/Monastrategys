@@ -1,0 +1,29 @@
+# Render deployment for Monastrategys (per Jay's order: off Vercel, onto Render).
+#
+# This is a client-only SPA: it builds to dist/ with Vite. Render serves it as
+# a static site with an SPA rewrite so client-side tab routing keeps working
+# on page refresh / deep links.
+#
+# Setup:
+#   1. Render dashboard > New > Static Site > select this repo
+#   2. Build command: npm ci && npm run build
+#   3. Publish directory: dist
+#   4. Add the rewrite rule below (Settings > Redirects/Rewrites > Add rule:
+#      source /* -> destination /index.html, action Rewrite)
+#
+# Optional env vars on the Render service (Settings > Environment):
+#   VITE_FIREBASE_*  — Firebase project (auth + Firestore); unset = demo mode
+#   VITE_ADMIN_EMAIL / VITE_ADMIN_PASS — admin backdoor (both must be set)
+# Env values are baked in at BUILD time by Vite (VITE_ prefix required).
+
+services:
+  - type: web
+    name: monastrategys
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    # Static sites: uncomment `env: static` + staticPublishPath if you prefer
+    # the managed static hosting instead of the Dockerfile below.
+    # env: static
+    # staticPublishPath: ./dist
+    dockerfilePath: ./Dockerfile

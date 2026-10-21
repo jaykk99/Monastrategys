@@ -36,6 +36,7 @@ import {
 } from './lib/demo';
 import {
   SOL_RECIPIENT,
+  type BacktestRule,
   type BacktestRun,
   type PlanDef,
   type PlanName,
@@ -52,6 +53,7 @@ import { PlansView, type PaymentStatus } from './components/PlansView';
 import { StrategiesView } from './components/StrategiesView';
 import { StrategyModal } from './components/StrategyModal';
 import { BacktestView } from './components/BacktestView';
+import { CompareView } from './components/CompareView';
 import { AdminView, StrategyForm, type StrategyFormData } from './components/AdminView';
 
 declare global {
@@ -66,7 +68,7 @@ const DEMO_SESSION_KEY = 'monastrategys_demo_session_v1';
 const googleProvider = services ? new GoogleAuthProvider() : null;
 if (googleProvider) googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-type TabId = 'plan' | 'chart' | 'strategies' | 'backtest' | 'upload';
+type TabId = 'plan' | 'chart' | 'strategies' | 'backtest' | 'compare' | 'upload';
 
 function loadDemoSession(): UserProfile | null {
   try {
@@ -133,6 +135,7 @@ function InnerApp() {
 
   // Backtest state
   const [selectedStratId, setSelectedStratId] = useState('');
+  const [selectedRule, setSelectedRule] = useState<BacktestRule>('momentum');
   const [runs, setRuns] = useState<BacktestRun[]>([]);
   const [isTesting, setIsTesting] = useState(false);
 
@@ -780,21 +783,22 @@ function InnerApp() {
     if (!isAdmin) await persistProfile({ backtestCount: (profile.backtestCount || 0) + 1 });
     // Let the spinner paint before the (fast) deterministic compute.
     await new Promise((r) => setTimeout(r, 900));
-    const stats = runBacktestEngine(strat.id);
+    const stats = runBacktestEngine(strat.id, 10000, 252, selectedRule);
     setRuns((prev) =>
       [
         {
-          runId: `${strat.id}-${Date.now()}`,
+          runId: `${strat.id}-${selectedRule}-${Date.now()}`,
           strategyId: strat.id,
           strategyTitle: strat.title,
           ranAt: Date.now(),
+          rule: selectedRule,
           stats,
         },
         ...prev,
       ].slice(0, 20),
     );
     setIsTesting(false);
-  }, [selectedStratId, profile, plan, isAdmin, strategies, persistProfile, notify]);
+  }, [selectedStratId, selectedRule, profile, plan, isAdmin, strategies, persistProfile, notify]);
 
   // ---------- chart tab ----------
   const loadSymbol = useCallback(() => {
@@ -824,6 +828,7 @@ function InnerApp() {
       { id: 'chart', label: 'Chart' },
       { id: 'strategies', label: 'Strategies' },
       { id: 'backtest', label: 'Backtest' },
+      { id: 'compare', label: 'Compare' },
       { id: 'upload', label: 'Admin' },
     );
   } else {
@@ -831,6 +836,7 @@ function InnerApp() {
       { id: 'chart', label: 'Chart' },
       { id: 'strategies', label: 'Strategies' },
       { id: 'backtest', label: 'Backtest' },
+      { id: 'compare', label: 'Compare' },
       { id: 'plan', label: 'Upgrade' },
     );
   }
@@ -991,9 +997,14 @@ function InnerApp() {
             isTesting={isTesting}
             runs={runs}
             onSelectStrategy={setSelectedStratId}
+            onSelectRule={setSelectedRule}
+            selectedRule={selectedRule}
             onRun={runBacktest}
           />
         )}
+
+        {/* COMPARE */}
+        {profile && activeTab === 'compare' && <CompareView strategies={strategies} />}
 
         {/* ADMIN */}
         {profile && isAdmin && activeTab === 'upload' && (

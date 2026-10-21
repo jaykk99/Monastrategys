@@ -82,8 +82,13 @@ export function StrategyModal({ strategy, onClose }: Props) {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-5">
               <StatCell label="WIN RATE" value={`${stats.winRate.toFixed(1)}%`} accent={stats.winRate >= 50} />
               <StatCell label="PROFIT FACTOR" value={stats.profitFactor.toFixed(2)} accent={stats.profitFactor >= 1.5} />
+              <StatCell label="SHARPE" value={stats.sharpe.toFixed(2)} accent={stats.sharpe >= 1} />
               <StatCell label="MAX DRAWDOWN" value={`${stats.maxDrawdown.toFixed(1)}%`} />
               <StatCell label="TRADES" value={String(stats.trades)} />
+              <StatCell label="EXPECTANCY" value={formatUsd(stats.expectancy)} accent={stats.expectancy >= 0} />
+              <StatCell label="AVG WIN / AVG LOSS" value={`${formatUsd(stats.avgWin)} / ${formatUsd(stats.avgLoss)}`} />
+              <StatCell label="MAX CONSEC. LOSSES" value={String(stats.maxConsecLosses)} />
+              <StatCell label="RECOVERY FACTOR" value={stats.recoveryFactor.toFixed(2)} accent={stats.recoveryFactor >= 1} />
               <StatCell label="NET PROFIT" value={formatUsd(stats.netProfit)} accent={positive} />
             </div>
           </div>

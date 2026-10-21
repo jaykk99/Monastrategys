@@ -33,6 +33,25 @@ export interface PlanDef {
   isTrial?: boolean;
 }
 
+// Signal rules supported by the deterministic backtest engine.
+export const BACKTEST_RULES = ['momentum', 'meanreversion', 'breakout'] as const;
+export type BacktestRule = (typeof BACKTEST_RULES)[number];
+
+export const BACKTEST_RULE_LABELS: Record<BacktestRule, string> = {
+  momentum: 'Momentum crossover',
+  meanreversion: 'Mean reversion',
+  breakout: 'Donchian breakout',
+};
+
+export interface BacktestTrade {
+  direction: 1 | -1;
+  entryBar: number;
+  exitBar: number;
+  pnl: number;
+  equityAfter: number;
+  rule: BacktestRule;
+}
+
 export interface BacktestStats {
   netProfit: number;
   winRate: number;
@@ -40,6 +59,18 @@ export interface BacktestStats {
   maxDrawdown: number;
   trades: number;
   equity: number[];
+  // Extended analytics
+  rule: BacktestRule;
+  avgWin: number;
+  avgLoss: number;
+  expectancy: number;
+  sharpe: number;
+  maxConsecLosses: number;
+  grossProfit: number;
+  grossLoss: number;
+  recoveryFactor: number;
+  maxDrawdownUsd: number;
+  tradeLog: BacktestTrade[];
 }
 
 export interface BacktestRun {
@@ -47,6 +78,7 @@ export interface BacktestRun {
   strategyId: string;
   strategyTitle: string;
   ranAt: number;
+  rule?: BacktestRule;
   stats: BacktestStats;
 }
 
