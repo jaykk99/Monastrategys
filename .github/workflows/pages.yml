@@ -1,0 +1,42 @@
+# GitHub Pages deploy for Monastrategys (interim live route while Render is
+# suspended, workspace-wide since 2026-11-06). render.yaml stays the Render
+# route for when the workspace is back. Base path is passed at build time
+# only, so vite.config.ts (and the Render deploy) is untouched.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build -- --base=/Monastrategys/
+      # SPA fallback: GitHub Pages has no rewrites, so deep links get index.html
+      - run: cp dist/index.html dist/404.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
